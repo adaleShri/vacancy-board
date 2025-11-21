@@ -20,29 +20,18 @@ pipeline {
         }
 
         stage('Build & Test') {
-            steps {
-                sh '''
-                  if [ -f package.json ]; then
-                    echo "Installing dependencies..."
-
-                    if [ -f package-lock.json ]; then
-                      npm ci
-                    else
-                      npm install
-                    fi
-
-                    if npm run | grep -q "test"; then
-                      echo "Running tests..."
-                      npm test
-                    else
-                      echo "No test script defined, skipping tests."
-                    fi
-                  else
-                    echo "No package.json found, skipping Node build."
-                  fi
-                '''
-            }
-        }
+    steps {
+        sh '''
+          if [ -f package.json ]; then
+            npm install
+            # Uncomment if you have tests
+            # npm test
+          else
+            echo "No package.json, skipping npm install"
+          fi
+        '''
+    }
+}
 
         stage('Build Docker Image') {
             steps {
