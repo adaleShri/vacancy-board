@@ -7,7 +7,6 @@ pipeline {
     }
 
     environment {
-        // Your Docker Hub image
         IMAGE_NAME = "adaleshri/vacancy-board"
     }
 
@@ -20,18 +19,39 @@ pipeline {
         }
 
         stage('Build & Test') {
-    steps {
-        sh '''
-          if [ -f package.json ]; then
-            npm install
-            # Uncomment if you have tests
-            # npm test
-          else
-            echo "No package.json, skipping npm install"
-          fi
-        '''
-    }
-}
+            // Run this stage inside a Node container so npm is available
+            agent {
+                docker {
+                    image 'node:18-alpine'
+                    reuseNode true   // share the same workspace with main agent
+                }
+            }
+            steps {
+                sh '''
+                  echo "Node version:"
+                  node -v
+
+                  if [ -f package.json ]; then
+                    echo "Installing dependencies..."
+
+                    if [ -f package-lock.json ]; then
+                      npm ci
+                    else
+                      npm install
+                    fi
+
+                    if npm run | grep -q "test"; then
+                      echo "Running tests..."
+                      npm test
+                    else
+                      echo "No test script defined, skipping tests."
+                    fi
+                  else
+                    echo "No package.json found, skipping Node build."
+                  fi
+                '''
+            }
+        }
 
         stage('Build Docker Image') {
             steps {
